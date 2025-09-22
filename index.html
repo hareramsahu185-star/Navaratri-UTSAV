@@ -87,10 +87,10 @@
         border: 1px solid rgba(255, 215, 0, 0.3);
         box-shadow: 0 8px 32px 0 rgba(255, 215, 0, 0.1);
         transform-style: preserve-3d;
-        transition: transform 0.1s linear;
+        transition: opacity 0.6s ease, transform 0.6s ease;
         opacity: 0;
-        transform: scale(0.8);
-        animation: fadeInContainer 1s 0.5s forwards cubic-bezier(0.25, 1, 0.5, 1);
+        transform: scale(0.85);
+        pointer-events: none; /* hidden until login */
         max-width: 95vw;
     }
     @keyframes fadeInContainer {
@@ -247,6 +247,25 @@
             padding: 12px 30px;
         }
     }
+    /* === LOGIN OVERLAY & CURTAIN === */
+    .login-overlay {
+        position: fixed; inset: 0; display:flex; align-items:center; justify-content:center;
+        background: radial-gradient(circle at 30% 20%, rgba(0,0,0,0.7), rgba(0,0,0,0.9));
+        z-index: 10001; color: #fff; font-family: 'Hind', sans-serif;
+    }
+    .login-card { background: rgba(255,255,255,0.04); padding: 28px; border-radius:12px; text-align:center; width: min(420px, 90%); box-shadow: 0 8px 40px rgba(0,0,0,0.6); }
+    .login-card h2 { font-family: 'Great Vibes', cursive; color:#FFB300; font-size:2.4rem; margin-bottom:8px; }
+    .login-card input { width:100%; padding:12px 14px; margin-top:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.35); color:#fff; }
+    .login-card button { margin-top:12px; padding:10px 18px; border-radius:8px; border:none; background:linear-gradient(145deg,#ff7aa2,#ff4d6e); color:#fff; cursor:pointer; }
+    .login-msg { margin-top:8px; color:#ffd6e0; min-height:18px; }
+
+    .curtain {
+        position: fixed; top:0; left:0; width:100%; height:100%; z-index:9999;
+        background: linear-gradient(180deg,#2b0036 0%, #120012 100%);
+        transition: height 2.2s ease, opacity 0.6s ease;
+    }
+    .curtain.open { height: 0; opacity: 0; pointer-events: none; }
+    .container.revealed { opacity: 1; transform: scale(1); pointer-events: auto; }
 </style>
 </head>
 <body>
@@ -258,6 +277,20 @@
 
 <div class="bg-divine">
     <div id="stars"></div><div id="stars2"></div><div id="stars3"></div>
+</div>
+
+<!-- Curtain that opens after successful login -->
+<div class="curtain" id="curtain"></div>
+
+<!-- Login overlay -->
+<div class="login-overlay" id="loginOverlay">
+    <div class="login-card">
+        <h2>Navratri Utsav</h2>
+        <div>Enter the password to begin</div>
+        <input id="loginInput" type="password" placeholder="Type password here" aria-label="password input">
+        <button id="loginBtn">Unlock</button>
+        <div class="login-msg" id="loginMsg"></div>
+    </div>
 </div>
 
 <main class="container">
@@ -382,13 +415,18 @@ window.addEventListener('load', () => {
     const videoPlayer = document.getElementById('navratri-video');
     const closeBtn = document.getElementById('close-video');
     const backgroundAudio = document.getElementById('background-music');
+    const loginOverlay = document.getElementById('loginOverlay');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginInput = document.getElementById('loginInput');
+    const loginMsg = document.getElementById('loginMsg');
+    const curtain = document.getElementById('curtain');
 
+    // Start the Utsav: pause background music and play the visual video
     playBtn.addEventListener('click', () => {
-        // Open overlay and play video (video left unchanged)
         videoOverlay.style.display = 'flex';
+        // Pause background music (video will have its own audio if not muted)
+        try { backgroundAudio.pause(); } catch(e){}
         videoPlayer.play().catch(err => console.warn('Video play failed:', err.message));
-    // Try to (re)start background music on user interaction in case autoplay was blocked
-    backgroundAudio.play().catch(err => console.warn('Background audio play blocked:', err.message));
 
         const isMobile = window.innerWidth < 768;
 
@@ -407,6 +445,31 @@ window.addEventListener('load', () => {
             });
         }
     });
+
+    // --- LOGIN / UNLOCK FLOW ---
+    function unlockIfPassword() {
+        const val = (loginInput.value || '').trim();
+        // the secret password (case-insensitive) - change if you want another
+        if (val.toLowerCase() === 'navratri utsav') {
+            loginMsg.textContent = 'Welcome! Opening the Utsav...';
+            // animate curtain up
+            curtain.classList.add('open');
+            // hide login overlay
+            loginOverlay.style.display = 'none';
+            // reveal main container after short delay
+            setTimeout(() => {
+                document.querySelector('.container').classList.add('revealed');
+                // Ensure background audio starts (user gesture already provided)
+                backgroundAudio.play().catch(err => console.warn('Background audio play blocked:', err.message));
+            }, 800);
+        } else {
+            loginMsg.textContent = 'Incorrect password — try "Navratri Utsav"';
+            loginInput.value = '';
+        }
+    }
+
+    loginBtn.addEventListener('click', unlockIfPassword);
+    loginInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') unlockIfPassword(); });
 
     function closeFullscreenVideo() {
         videoOverlay.style.display = 'none';
