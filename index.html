@@ -178,6 +178,13 @@
         opacity: 0.5; transition: opacity 0.3s;
         padding: 5px 10px; /* Bigger tap area */
     }
+    #unmute-video {
+        position: fixed; top: 24px; right: 90px;
+        font-size: 1.2rem; color: white; background: rgba(0,0,0,0.35);
+        border: 1px solid rgba(255,255,255,0.12); padding: 8px 12px; border-radius:8px;
+        cursor: pointer; z-index: 9999;
+    }
+    #audio-hint { position: fixed; bottom: 22px; right: 22px; color:#fff8; z-index:9999; font-size:0.9rem }
     #close-video:hover { opacity: 1; }
     
     /* === FLOATING PARTICLES (FEATHERS, FLUTES, FLOWERS) === */
@@ -304,8 +311,10 @@
 
     <div id="video-overlay">
     <button id="close-video">&times;</button>
-    <!-- Visual-only video: use j.mp4 but keep it muted so its audio (if any) doesn't play -->
-    <video id="navratri-video" src="j.mp4" loop playsinline muted></video>
+    <button id="unmute-video" style="display:none">Unmute Video</button>
+    <!-- Video: use j.mp4 (audio allowed) -->
+    <video id="navratri-video" src="j.mp4" loop playsinline></video>
+    <div id="audio-hint" style="display:none">If you don't hear video audio, click Unmute Video</div>
 </div>
 
 <audio id="background-music" src="a.mp3" loop></audio>
@@ -415,6 +424,8 @@ window.addEventListener('load', () => {
     const videoPlayer = document.getElementById('navratri-video');
     const closeBtn = document.getElementById('close-video');
     const backgroundAudio = document.getElementById('background-music');
+    const unmuteBtn = document.getElementById('unmute-video');
+    const audioHint = document.getElementById('audio-hint');
     const loginOverlay = document.getElementById('loginOverlay');
     const loginBtn = document.getElementById('loginBtn');
     const loginInput = document.getElementById('loginInput');
@@ -424,9 +435,15 @@ window.addEventListener('load', () => {
     // Start the Utsav: pause background music and play the visual video
     playBtn.addEventListener('click', () => {
         videoOverlay.style.display = 'flex';
-        // Pause background music (video will have its own audio if not muted)
+        // Pause background music and ensure video audio is unmuted
         try { backgroundAudio.pause(); } catch(e){}
+        try { videoPlayer.muted = false; videoPlayer.volume = 1.0; } catch(e){}
         videoPlayer.play().catch(err => console.warn('Video play failed:', err.message));
+        // Show unmute control in case browser muted the video or audio autoplay blocked
+        setTimeout(() => {
+            unmuteBtn.style.display = 'block';
+            audioHint.style.display = 'block';
+        }, 300);
 
         const isMobile = window.innerWidth < 768;
 
@@ -444,6 +461,21 @@ window.addEventListener('load', () => {
                 console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
             });
         }
+    });
+
+    unmuteBtn.addEventListener('click', () => {
+        try {
+            if (videoPlayer.muted) {
+                videoPlayer.muted = false; videoPlayer.volume = 1.0;
+                // pause background audio when video sound is enabled
+                try { backgroundAudio.pause(); } catch(e){}
+                unmuteBtn.textContent = 'Mute Video';
+                audioHint.style.display = 'none';
+            } else {
+                videoPlayer.muted = true; unmuteBtn.textContent = 'Unmute Video';
+                audioHint.style.display = 'block';
+            }
+        } catch(e) { console.warn(e); }
     });
 
     // --- LOGIN / UNLOCK FLOW ---
@@ -500,7 +532,7 @@ window.addEventListener('load', () => {
     
     muteButton.addEventListener('click', () => {
         backgroundAudio.muted = !backgroundAudio.muted;
-        muteButton.textContent = backgroundAudio.muted ? '🔇' : '🔊';
+        muteButton.textContent = backgroundAudio.muted ?  '🔊':'🔇';
     });
 });
 </script>
