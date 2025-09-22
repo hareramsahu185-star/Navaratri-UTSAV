@@ -329,7 +329,7 @@ window.addEventListener('load', () => {
     preloader.style.opacity = '0';
     setTimeout(() => {
         preloader.style.display = 'none';
-        document.getElementById('background-music').play().catch(e => console.log("Audio autoplay was blocked."));
+        // Do not auto-play background music here. It will start only after successful login/unlock.
     }, 1000);
 
     const container = document.querySelector('.container');
