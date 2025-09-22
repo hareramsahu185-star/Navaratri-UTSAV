@@ -317,7 +317,8 @@
     <div id="audio-hint" style="display:none">If you don't hear video audio, click Unmute Video</div>
 </div>
 
-<audio id="background-music" src="a.mp3" loop></audio>
+<!-- background music is not loaded until after unlock to avoid autoplay/prefetch on hosting -->
+<audio id="background-music" preload="none" loop></audio>
 <button id="mute-toggle">🔇</button>
 
 <canvas id="cursor-trail"></canvas>
@@ -491,8 +492,12 @@ window.addEventListener('load', () => {
             // reveal main container after short delay
             setTimeout(() => {
                 document.querySelector('.container').classList.add('revealed');
-                // Ensure background audio starts (user gesture already provided)
-                backgroundAudio.play().catch(err => console.warn('Background audio play blocked:', err.message));
+                // Load and start background audio only now to avoid preloading on hosting platforms
+                try {
+                    backgroundAudio.src = 'a.mp3';
+                    backgroundAudio.load();
+                    backgroundAudio.play().catch(err => console.warn('Background audio play blocked:', err.message));
+                } catch(e) { console.warn('Audio start failed', e); }
             }, 800);
         } else {
             loginMsg.textContent = 'Incorrect password — try "Navratri Utsav"';
